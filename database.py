@@ -45,8 +45,7 @@ def importar_excel_db(ruta_archivo):
     # Leer el archivo Excel y almacenar los datos en un DataFrame
     df = pd.read_excel(ruta_archivo)
 
-    # Ignorar primeras filas si es necesario
-    # (ajusta el número de filas a ignorar según tu caso)
+    # Ignorar primeras filas
     df = df.iloc[0:]
 
     # Iterar sobre las filas del DataFrame y ejecutar las consultas INSERT
