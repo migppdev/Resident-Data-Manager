@@ -2,74 +2,71 @@ import sqlite3 as sql
 import pandas as pd
 
 
-conn = sql.connect("base_de_datos.db")
+conn = sql.connect("database.db")
 cursor = conn.cursor()
 
 cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Residentes(
+    CREATE TABLE IF NOT EXISTS Residents(
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre_completo TEXT,
-        edad INTEGER,
-        fecha_inscripcion TEXT
+        full_name TEXT,
+        age INTEGER,
+        registration_date TEXT
     )
 """)
 
-def anadir_residente_db(nombre_completo, edad, fecha_inscripcion):
-    cursor.execute("INSERT INTO Residentes VALUES (null, ?, ?, ?)", (nombre_completo, edad, fecha_inscripcion,))
+def add_resident_db(full_name, age, registration_date):
+    cursor.execute("INSERT INTO Residents VALUES (null, ?, ?, ?)", (full_name, age, registration_date,))
     conn.commit()
 
-def busqueda_residente_db(query):
-    cursor.execute("SELECT nombre_completo FROM Residentes WHERE nombre_completo LIKE ?", (f'%{query}%',))
-    resultados = cursor.fetchall()
-    return resultados
+def search_resident_db(query):
+    cursor.execute("SELECT full_name FROM Residents WHERE full_name LIKE ?", (f'%{query}%',))
+    results = cursor.fetchall()
+    return results
 
-def obtener_residentes():
-    cursor.execute("SELECT nombre_completo FROM Residentes")
-    resultados = cursor.fetchall()
-    return resultados
+def get_residents():
+    cursor.execute("SELECT full_name FROM Residents")
+    results = cursor.fetchall()
+    return results
 
-def eliminar_residente(nombre_completo):
-    cursor.execute("DELETE FROM Residentes WHERE nombre_completo = ?", (nombre_completo,))
+def delete_resident(full_name):
+    cursor.execute("DELETE FROM Residents WHERE full_name = ?", (full_name,))
     conn.commit()
 
-def obtener_datos(nombre_completo):
-    cursor.execute("SELECT * FROM Residentes WHERE nombre_completo = ?", (nombre_completo,))
-    datos = cursor.fetchall()
-    return datos[0]
+def get_data(full_name):
+    cursor.execute("SELECT * FROM Residents WHERE full_name = ?", (full_name,))
+    data = cursor.fetchall()
+    return data[0]
 
-def actualizar_datos_db(nombre_completo_nuevo, edad_nueva, fecha_nueva, nombre_completo_anterior):
-    cursor.execute("UPDATE Residentes SET nombre_completo = ?, edad = ?, fecha_inscripcion = ? WHERE nombre_completo = ?", (nombre_completo_nuevo, edad_nueva, fecha_nueva, nombre_completo_anterior))
+def update_data_db(new_full_name, new_age, new_date, old_full_name):
+    cursor.execute("UPDATE Residents SET full_name = ?, age = ?, registration_date = ? WHERE full_name = ?", (new_full_name, new_age, new_date, old_full_name))
     conn.commit()
 
-def importar_excel_db(ruta_archivo):
-    # Leer el archivo Excel y almacenar los datos en un DataFrame
-    df = pd.read_excel(ruta_archivo)
+def import_excel_db(file_path):
+    # Read the Excel file and store the data in a DataFrame
+    df = pd.read_excel(file_path)
 
-    # Ignorar primeras filas
+    # Ignore first rows
     df = df.iloc[0:]
 
-    # Iterar sobre las filas del DataFrame y ejecutar las consultas INSERT
-    for fila in df.itertuples(index=False):
-        cursor.execute('INSERT INTO Residentes VALUES (null, ?, ?, ?)', fila)
+    # Iterate over the DataFrame rows and execute the INSERT queries
+    for row in df.itertuples(index=False):
+        cursor.execute('INSERT INTO Residents VALUES (null, ?, ?, ?)', row)
 
 
-def exportar_excel_db(ruta_archivo):
-    cursor.execute("SELECT nombre_completo, edad, fecha_inscripcion FROM Residentes")
-    resultados = cursor.fetchall()
+def export_excel_db(file_path):
+    cursor.execute("SELECT full_name, age, registration_date FROM Residents")
+    results = cursor.fetchall()
     
-    # Crear un DataFrame con los resultados de la consulta
-    df = pd.DataFrame(resultados, columns=['Nombre', 'Edad', 'Fecha de Inscripción'])
+    # Create a DataFrame with the query results
+    df = pd.DataFrame(results, columns=['Name', 'Age', 'Registration Date'])
     
-    # Exportar el DataFrame a un archivo de Excel
-    df.to_excel(ruta_archivo, index=False)
+    # Export the DataFrame to an Excel file
+    df.to_excel(file_path, index=False)
     
     
-def borrar_todo_db():
-    cursor.execute("DELETE FROM Residentes;")
+def delete_all_db():
+    cursor.execute("DELETE FROM Residents;")
     conn.commit()
 
-def cerrar_db():
-    conn.close()   
-
-
-
+def close_db():
+    conn.close()

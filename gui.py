@@ -1,174 +1,175 @@
 import tkinter as tk
-from database import anadir_residente_db, obtener_residentes, busqueda_residente_db, eliminar_residente, obtener_datos, actualizar_datos_db, cerrar_db, importar_excel_db, exportar_excel_db, borrar_todo_db
+from database import add_resident_db, get_residents, search_resident_db, delete_resident, get_data, update_data_db, close_db, import_excel_db, export_excel_db, delete_all_db
 from tkinter import messagebox, filedialog
 from tkcalendar import DateEntry
 import locale
 
-class Residente:
-    def __init__(self, nombre, edad, fecha_inscripcion):
-        self.nombre = nombre
-        self.edad = edad
-        self.fecha_inscripcion = fecha_inscripcion
+class Resident:
+    def __init__(self, name, age, registration_date):
+        self.name = name
+        self.age = age
+        self.registration_date = registration_date
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        # Configurar ventana 
+        # Configure window 
         self.geometry("600x400")
-        self.title("Gestor de Residentes")
+        self.title("Resident Manager")
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=5)
         self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
 
-        #* Menú
+        #* Menu
         self.menu_bar = tk.Menu(self)
 
-        self.menu_archivo = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Archivo", menu=self.menu_archivo)
-        self.menu_archivo.add_command(label="Importar de archivo Excel", command=self.importar_excel)
-        self.menu_archivo.add_command(label="Exportar a Excel", command=self.exportar_a_excel)
-        self.menu_archivo.add_command(label="Salir", command=self.cerrar_ventana)        
-        self.menu_edicion = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Edicion", menu=self.menu_edicion)
-        self.menu_edicion.add_command(label="Borrar todo", command=self.borrar_todos_residentes)
+        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="Import from Excel file", command=self.import_excel)
+        self.file_menu.add_command(label="Export to Excel", command=self.export_to_excel)
+        self.file_menu.add_command(label="Exit", command=self.close_window)        
+        self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Edit", menu=self.edit_menu)
+        self.edit_menu.add_command(label="Delete all", command=self.delete_all_residents)
 
         self.config(menu=self.menu_bar)
 
-        # Frame búsqueda
-        self.frame_busqueda = tk.Frame(self)
-        self.frame_busqueda.rowconfigure(0, weight=1)
-        self.frame_busqueda.columnconfigure(0, weight=2)
-        self.frame_busqueda.columnconfigure(1, weight=1)
-        self.frame_busqueda.grid(row=0, column=0, sticky="nsew")
+        # Search Frame
+        self.search_frame = tk.Frame(self)
+        self.search_frame.rowconfigure(0, weight=1)
+        self.search_frame.columnconfigure(0, weight=2)
+        self.search_frame.columnconfigure(1, weight=1)
+        self.search_frame.grid(row=0, column=0, sticky="nsew")
 
-        self.entry_busqueda = tk.Entry(self.frame_busqueda, font=("Arial Black", 10), bg="#1e90b0")
-        self.entry_busqueda.grid(row=0, column=0, sticky="nsew")
-        self.boton_busqueda = tk.Button(self.frame_busqueda,font=("Arial", 14), text="🔎", bg="#1e81b0", command=lambda: self.busqueda_residente(self.entry_busqueda.get()))
-        self.boton_busqueda.grid(row=0, column=1, sticky="nsew")
+        self.search_entry = tk.Entry(self.search_frame, font=("Arial Black", 10), bg="#1e90b0")
+        self.search_entry.grid(row=0, column=0, sticky="nsew")
+        self.search_button = tk.Button(self.search_frame,font=("Arial", 14), text="🔎", bg="#1e81b0", command=lambda: self.search_resident(self.search_entry.get()))
+        self.search_button.grid(row=0, column=1, sticky="nsew")
 
-        # Frame de los botones
-        self.frame_botones = tk.Frame(self)
-        self.frame_botones.rowconfigure(0, weight=1)
-        self.frame_botones.columnconfigure(0, weight=1)
-        self.frame_botones.columnconfigure(1, weight=1)
-        self.frame_botones.columnconfigure(2, weight=1) 
-        self.frame_botones.columnconfigure(3, weight=1) 
-        self.frame_botones.grid(row=2, column=0, sticky="nsew")
+        # Buttons Frame
+        self.buttons_frame = tk.Frame(self)
+        self.buttons_frame.rowconfigure(0, weight=1)
+        self.buttons_frame.columnconfigure(0, weight=1)
+        self.buttons_frame.columnconfigure(1, weight=1)
+        self.buttons_frame.columnconfigure(2, weight=1) 
+        self.buttons_frame.columnconfigure(3, weight=1) 
+        self.buttons_frame.grid(row=2, column=0, sticky="nsew")
         
-        # Creación de la lista
-        self.lista_residentes = tk.Listbox(font=("Arial", 15), bg="#7fbfd0", selectbackground="#3d7979", highlightthickness=0, selectmode="single", activestyle="none", selectforeground="black")
-        self.lista_residentes.grid(row=1, column=0, sticky="nsew")
+        # List Creation
+        self.residents_list = tk.Listbox(font=("Arial", 15), bg="#7fbfd0", selectbackground="#3d7979", highlightthickness=0, selectmode="single", activestyle="none", selectforeground="black")
+        self.residents_list.grid(row=1, column=0, sticky="nsew")
 
-        # Añadir botones para la lista
-        self.boton_ver_residente = tk.Button(self.frame_botones, bg="#1e81b0", text="Ver información", command=self.ver_informacion_residente)
-        self.boton_ver_residente.grid(row=0, column=0, sticky="nsew")
+        # Add buttons for the list
+        self.view_resident_button = tk.Button(self.buttons_frame, bg="#1e81b0", text="View information", command=self.view_resident_information)
+        self.view_resident_button.grid(row=0, column=0, sticky="nsew")
         
-        self.boton_nuevo_residente = tk.Button(self.frame_botones, bg="#1e81b0", text="Añadir residente", command=self.nuevo_residente)
-        self.boton_nuevo_residente.grid(row=0, column=1, sticky="nsew")
+        self.new_resident_button = tk.Button(self.buttons_frame, bg="#1e81b0", text="Add resident", command=self.new_resident)
+        self.new_resident_button.grid(row=0, column=1, sticky="nsew")
 
-        self.boton_eliminar_residente = tk.Button(self.frame_botones, bg="#1e81b0", text="Eliminar residente", command=self.eliminar_residente)
-        self.boton_eliminar_residente.grid(row=0, column=2, sticky="nsew")
+        self.delete_resident_button = tk.Button(self.buttons_frame, bg="#1e81b0", text="Delete resident", command=self.delete_resident)
+        self.delete_resident_button.grid(row=0, column=2, sticky="nsew")
 
-        self.boton_editar_residente = tk.Button(self.frame_botones, bg="#1e81b0", text="Editar residente", command=self.editar_residente)
-        self.boton_editar_residente.grid(row=0, column=3, sticky="nsew")
+        self.edit_resident_button = tk.Button(self.buttons_frame, bg="#1e81b0", text="Edit resident", command=self.edit_resident)
+        self.edit_resident_button.grid(row=0, column=3, sticky="nsew")
 
-    def ver_informacion_residente(self):
+    def view_resident_information(self):
         try:
-            residente_seleccionado = self.lista_residentes.get(self.lista_residentes.curselection())
-            self.ventana_ver_info = tk.Toplevel()
-            self.ventana_ver_info.geometry("400x300")
-            self.ventana_ver_info.title(f"Información de {residente_seleccionado}")
-            self.ventana_ver_info.rowconfigure(0, weight=1)
-            self.ventana_ver_info.rowconfigure(1, weight=1)
-            self.ventana_ver_info.rowconfigure(2, weight=1)
-            self.ventana_ver_info.columnconfigure(0, weight=1)
-            self.ventana_ver_info.columnconfigure(1, weight=1)
+            selected_resident = self.residents_list.get(self.residents_list.curselection())
+            self.view_info_window = tk.Toplevel()
+            self.view_info_window.geometry("400x300")
+            self.view_info_window.title(f"Information of {selected_resident}")
+            self.view_info_window.rowconfigure(0, weight=1)
+            self.view_info_window.rowconfigure(1, weight=1)
+            self.view_info_window.rowconfigure(2, weight=1)
+            self.view_info_window.columnconfigure(0, weight=1)
+            self.view_info_window.columnconfigure(1, weight=1)
 
-            tk.Label(self.ventana_ver_info, text="Nombre completo").grid(row=0, column=0)
-            self.nombre_label = tk.Label(self.ventana_ver_info, text=residente_seleccionado, highlightthickness=1, highlightbackground="black")
-            self.nombre_label.grid(row=0, column=1)
+            tk.Label(self.view_info_window, text="Full Name").grid(row=0, column=0)
+            self.name_label = tk.Label(self.view_info_window, text=selected_resident, highlightthickness=1, highlightbackground="black")
+            self.name_label.grid(row=0, column=1)
 
-            tk.Label(self.ventana_ver_info, text="Edad").grid(row=1, column=0)
-            self.edad_label = tk.Label(self.ventana_ver_info, text=obtener_datos(residente_seleccionado)[2], highlightthickness=1, highlightbackground="black")
-            self.edad_label.grid(row=1, column=1)
+            tk.Label(self.view_info_window, text="Age").grid(row=1, column=0)
+            self.age_label = tk.Label(self.view_info_window, text=get_data(selected_resident)[2], highlightthickness=1, highlightbackground="black")
+            self.age_label.grid(row=1, column=1)
 
-            tk.Label(self.ventana_ver_info, text="Fecha de Inscripción").grid(row=2, column=0)
-            self.fecha_label = tk.Label(self.ventana_ver_info, text=obtener_datos(residente_seleccionado)[3], highlightthickness=1, highlightbackground="black")
-            self.fecha_label.grid(row=2, column=1)
+            tk.Label(self.view_info_window, text="Registration Date").grid(row=2, column=0)
+            self.date_label = tk.Label(self.view_info_window, text=get_data(selected_resident)[3], highlightthickness=1, highlightbackground="black")
+            self.date_label.grid(row=2, column=1)
 
         except tk.TclError:
-            messagebox.showerror(title="Error", message="No has seleccionado ningún residente")
+            messagebox.showerror(title="Error", message="You haven't selected any resident")
 
-    def nuevo_residente(self):
+    def new_resident(self):
 
-        #* Configurar ventana
-        self.ventana_nuevo_residente = tk.Toplevel()
-        self.ventana_nuevo_residente.title("Añadir residente")
-        self.ventana_nuevo_residente.rowconfigure(0, weight=1)
-        self.ventana_nuevo_residente.rowconfigure(1, weight=1)
-        self.ventana_nuevo_residente.columnconfigure(0, weight=1)
+        #* Configure window
+        self.new_resident_window = tk.Toplevel()
+        self.new_resident_window.title("Add resident")
+        self.new_resident_window.rowconfigure(0, weight=1)
+        self.new_resident_window.rowconfigure(1, weight=1)
+        self.new_resident_window.columnconfigure(0, weight=1)
         
-        #* Frame datos del nuevo residente
-        self.frame_datos = tk.Frame(self.ventana_nuevo_residente)
-        self.frame_datos.grid(row=0, column=0)
+        #* New resident data Frame
+        self.data_frame = tk.Frame(self.new_resident_window)
+        self.data_frame.grid(row=0, column=0)
         
-        # Configurar frame
-        self.frame_datos.rowconfigure(0, weight=1)
-        self.frame_datos.rowconfigure(1, weight=1)
-        self.frame_datos.rowconfigure(2, weight=1)
-        self.frame_datos.columnconfigure(0, weight=1)
-        self.frame_datos.columnconfigure(1, weight=1)
-        self.frame_datos.grid(row=0, column=0, sticky="nsew")
+        # Configure frame
+        self.data_frame.rowconfigure(0, weight=1)
+        self.data_frame.rowconfigure(1, weight=1)
+        self.data_frame.rowconfigure(2, weight=1)
+        self.data_frame.columnconfigure(0, weight=1)
+        self.data_frame.columnconfigure(1, weight=1)
+        self.data_frame.grid(row=0, column=0, sticky="nsew")
         
-        # Campos para el frame de datos
-        self.nombre_completo_label = tk.Label(self.frame_datos, text="Nombre completo")
-        self.nombre_completo_label.grid(row=0, column=0)
-        self.nombre_completo_entry = tk.Entry(self.frame_datos)      # Nombre
-        self.nombre_completo_entry.grid(row=0, column=1, sticky="nsew")
+        # Fields for the data frame
+        self.full_name_label = tk.Label(self.data_frame, text="Full Name")
+        self.full_name_label.grid(row=0, column=0)
+        self.full_name_entry = tk.Entry(self.data_frame)      # Name
+        self.full_name_entry.grid(row=0, column=1, sticky="nsew")
 
-        self.edad_label = tk.Label(self.frame_datos, text="Edad")
-        self.edad_label.grid(row=1, column=0)
-        self.edad_entry = tk.Spinbox(self.frame_datos, from_=18, to=150)        # Edad
-        self.edad_entry.grid(row=1, column=1)
+        self.age_label = tk.Label(self.data_frame, text="Age")
+        self.age_label.grid(row=1, column=0)
+        self.age_entry = tk.Spinbox(self.data_frame, from_=18, to=150)        # Age
+        self.age_entry.grid(row=1, column=1)
         
-        # Creación del calendario y cambiar el idioma a Español
-        locale.setlocale(locale.LC_TIME, 'es_ES.utf8') # Cambio de idioma
-        self.calendario = DateEntry(self.frame_datos, locale='es_ES', date_pattern="dd/MM/yyyy")
-        self.fecha_label = tk.Label(self.frame_datos, text="Fecha de inscripción")
-        self.fecha_label.grid(row=2, column=0)
-        self.calendario.grid(row=2, column=1)
+        # Calendar creation and language change to English (or keeping Spanish locale for the input if preferred, but usually 'C' is neutral)
+        # We will keep the default locale or set it to a neutral one, but the DateEntry pattern will be kept for formatting consistency.
+        locale.setlocale(locale.LC_TIME, '') # Reset or set to a default locale
+        self.calendar = DateEntry(self.data_frame, date_pattern="dd/MM/yyyy")
+        self.date_label = tk.Label(self.data_frame, text="Registration Date")
+        self.date_label.grid(row=2, column=0)
+        self.calendar.grid(row=2, column=1)
 
-        # Frame botón
-        self.frame_boton_anadir = tk.Frame(self.ventana_nuevo_residente)
-        self.frame_boton_anadir.rowconfigure(0, weight=1)
-        self.frame_boton_anadir.columnconfigure(0, weight=1)
-        self.frame_boton_anadir.grid(row=1, column=0, sticky="nsew")
+        # Button Frame
+        self.add_button_frame = tk.Frame(self.new_resident_window)
+        self.add_button_frame.rowconfigure(0, weight=1)
+        self.add_button_frame.columnconfigure(0, weight=1)
+        self.add_button_frame.grid(row=1, column=0, sticky="nsew")
 
-        # Función para recoger los datos de los entries y agregarlos a la base de datos
-        def confirmar_residente():
-            global residente
-            residente = Residente(nombre=self.nombre_completo_entry.get(), edad=self.edad_entry.get(), fecha_inscripcion=self.calendario.get())     
-            anadir_residente_db(residente.nombre, residente.edad, residente.fecha_inscripcion)  
-            self.ventana_nuevo_residente.destroy()
-            self.actualizar_lista()
+        # Function to collect data from entries and add it to the database
+        def confirm_resident():
+            global resident
+            resident = Resident(name=self.full_name_entry.get(), age=self.age_entry.get(), registration_date=self.calendar.get())      
+            add_resident_db(resident.name, resident.age, resident.registration_date)  
+            self.new_resident_window.destroy()
+            self.update_list()
             
-        self.boton_anadir = tk.Button(self.frame_boton_anadir, text="Confirmar", command=confirmar_residente)
-        self.boton_anadir.grid(row=0, column=0, sticky="nsew") 
-        self.ventana_nuevo_residente.mainloop()
+        self.add_button = tk.Button(self.add_button_frame, text="Confirm", command=confirm_resident)
+        self.add_button.grid(row=0, column=0, sticky="nsew") 
+        self.new_resident_window.mainloop()
 
-    def editar_residente(self):
+    def edit_resident(self):
         try:
-            residente_seleccionado = self.lista_residentes.get(self.lista_residentes.curselection())
-            self.ventana_editar = tk.Toplevel()
-            self.ventana_editar.geometry("400x300")
-            self.ventana_editar.title(f"Editando a {residente_seleccionado}")
-            self.ventana_editar.rowconfigure(0, weight=4)
-            self.ventana_editar.rowconfigure(1, weight=1)
-            self.ventana_editar.columnconfigure(0, weight=1)
+            selected_resident = self.residents_list.get(self.residents_list.curselection())
+            self.edit_window = tk.Toplevel()
+            self.edit_window.geometry("400x300")
+            self.edit_window.title(f"Editing {selected_resident}")
+            self.edit_window.rowconfigure(0, weight=4)
+            self.edit_window.rowconfigure(1, weight=1)
+            self.edit_window.columnconfigure(0, weight=1)
 
-            self.info_frame = tk.Frame(self.ventana_editar)
+            self.info_frame = tk.Frame(self.edit_window)
             self.info_frame.grid(row=0, column=0, sticky="nsew")
 
             self.info_frame.rowconfigure(0, weight=1)
@@ -177,94 +178,95 @@ class App(tk.Tk):
             self.info_frame.columnconfigure(0, weight=1)
             self.info_frame.columnconfigure(1, weight=1)
 
-            tk.Label(self.info_frame, text="Nombre").grid(row=0, column=0)
-            self.nuevo_nombre = tk.Entry(self.info_frame)
-            self.nuevo_nombre.grid(row=0, column=1)
+            tk.Label(self.info_frame, text="Name").grid(row=0, column=0)
+            self.new_name = tk.Entry(self.info_frame)
+            self.new_name.grid(row=0, column=1)
 
-            tk.Label(self.info_frame, text="Edad").grid(row=1, column=0)
-            self.nueva_edad = tk.Entry(self.info_frame)
-            self.nueva_edad.grid(row=1, column=1)
+            tk.Label(self.info_frame, text="Age").grid(row=1, column=0)
+            self.new_age = tk.Entry(self.info_frame)
+            self.new_age.grid(row=1, column=1)
 
-            tk.Label(self.info_frame, text="Fecha de inscripción").grid(row=2, column=0)
-            self.nueva_fecha = DateEntry(self.info_frame, locale="es_ES", date_pattern="dd/MM/yyyy")
-            self.nueva_fecha.grid(row=2, column=1)
+            tk.Label(self.info_frame, text="Registration Date").grid(row=2, column=0)
+            # Keeping the date pattern for consistency, setting locale to neutral
+            self.new_date = DateEntry(self.info_frame, date_pattern="dd/MM/yyyy") 
+            self.new_date.grid(row=2, column=1)
 
-            self.boton_frame = tk.Frame(self.ventana_editar)
-            self.boton_frame.grid(row=1, column=0, sticky="nsew")
-            self.boton_frame.rowconfigure(0, weight=1)
-            self.boton_frame.columnconfigure(0, weight=1)
+            self.button_frame = tk.Frame(self.edit_window)
+            self.button_frame.grid(row=1, column=0, sticky="nsew")
+            self.button_frame.rowconfigure(0, weight=1)
+            self.button_frame.columnconfigure(0, weight=1)
 
-            # Añadir los datos a los entries
-            self.nuevo_nombre.insert(0, obtener_datos(residente_seleccionado)[1])
-            self.nueva_edad.insert(0, obtener_datos(residente_seleccionado)[2])
-            self.nueva_fecha.delete(0, tk.END)
-            self.nueva_fecha.insert(0, obtener_datos(residente_seleccionado)[3])
+            # Add data to entries
+            self.new_name.insert(0, get_data(selected_resident)[1])
+            self.new_age.insert(0, get_data(selected_resident)[2])
+            self.new_date.delete(0, tk.END)
+            self.new_date.insert(0, get_data(selected_resident)[3])
 
-            self.boton_guardar_cambios = tk.Button(self.boton_frame,
-                                                    text="Guardar cambios",
-                                                    command=lambda: self.actualizar_datos(self.nuevo_nombre.get(), self.nueva_edad.get(), self.nueva_fecha.get(), residente_seleccionado))
-            self.boton_guardar_cambios.grid(row=0, column=0, sticky="nsew")
+            self.save_changes_button = tk.Button(self.button_frame,
+                                                 text="Save changes",
+                                                 command=lambda: self.update_data(self.new_name.get(), self.new_age.get(), self.new_date.get(), selected_resident))
+            self.save_changes_button.grid(row=0, column=0, sticky="nsew")
 
         except tk.TclError:
-            messagebox.showerror(title="Error", message="Selecciona un residente")
-            return 0;
+            messagebox.showerror(title="Error", message="Select a resident")
+            return 0
 
-    def eliminar_residente(self):
+    def delete_resident(self):
         try:
-            seleccion = self.lista_residentes.curselection()
-            residente_seleccionado = self.lista_residentes.get(seleccion)
+            selection = self.residents_list.curselection()
+            selected_resident = self.residents_list.get(selection)
 
-            if messagebox.askyesno(title="Eliminar residente", message=f"¿Deseas eliminar al residente {residente_seleccionado} de la base de datos?"):
-                eliminar_residente(nombre_completo=residente_seleccionado)
+            if messagebox.askyesno(title="Delete resident", message=f"Do you want to delete resident {selected_resident} from the database?"):
+                delete_resident(full_name=selected_resident)
             else:
                 pass
 
         except tk.TclError:
-            messagebox.showerror(title="Error", message="Selecciona un residente")
+            messagebox.showerror(title="Error", message="Select a resident")
 
         finally:
-            self.actualizar_lista()
+            self.update_list()
 
-    def actualizar_lista(self):
-        self.lista_residentes.delete(0, tk.END)
-        for residente in obtener_residentes():
-            self.lista_residentes.insert(tk.END, ' '.join(residente))
+    def update_list(self):
+        self.residents_list.delete(0, tk.END)
+        for resident in get_residents():
+            self.residents_list.insert(tk.END, ' '.join(resident))
 
-    def busqueda_residente(self, query):
-        self.lista_residentes.delete(0, tk.END)
-        for residente in busqueda_residente_db(query):
-            self.lista_residentes.insert(tk.END, ' '.join(residente))
+    def search_resident(self, query):
+        self.residents_list.delete(0, tk.END)
+        for resident in search_resident_db(query):
+            self.residents_list.insert(tk.END, ' '.join(resident))
 
-    def actualizar_datos(self, nombre_completo_nuevo, edad_nueva, fecha_nueva, nombre_completo_anterior):
-        if messagebox.askyesno(title="Confirmación", message="¿Deseas cambiar los datos?"):
-            actualizar_datos_db(nombre_completo_nuevo, edad_nueva, fecha_nueva, nombre_completo_anterior)
-            self.ventana_editar.destroy()
-            self.actualizar_lista()
+    def update_data(self, new_full_name, new_age, new_date, old_full_name):
+        if messagebox.askyesno(title="Confirmation", message="Do you want to change the data?"):
+            update_data_db(new_full_name, new_age, new_date, old_full_name)
+            self.edit_window.destroy()
+            self.update_list()
         else:
             pass
 
-    def importar_excel(self):
-        ruta_archivo_excel = filedialog.askopenfilename()
-        importar_excel_db(ruta_archivo=ruta_archivo_excel)
-        self.actualizar_lista()
+    def import_excel(self):
+        excel_file_path = filedialog.askopenfilename()
+        import_excel_db(file_path=excel_file_path)
+        self.update_list()
 
-    def exportar_a_excel(self):
-        ruta_archivo_excel = filedialog.askopenfilename()
-        exportar_excel_db(ruta_archivo=ruta_archivo_excel)
+    def export_to_excel(self):
+        excel_file_path = filedialog.askopenfilename()
+        export_excel_db(file_path=excel_file_path)
     
-    def cerrar_ventana(self):
+    def close_window(self):
         self.destroy()
-        cerrar_db()
+        close_db()
 
-    def borrar_todos_residentes(self):
-        if messagebox.askokcancel(title="Borrar todos los datos", message="Estás a punto de borrar todos los datos de la base de datos"):
-            borrar_todo_db()
+    def delete_all_residents(self):
+        if messagebox.askokcancel(title="Delete all data", message="You are about to delete all data from the database"):
+            delete_all_db()
         else:
             pass
 
 
 if __name__ == '__main__':
     app = App()
-    app.actualizar_lista()
-    app.protocol("WM_DELETE_WINDOW", app.cerrar_ventana)
+    app.update_list()
+    app.protocol("WM_DELETE_WINDOW", app.close_window)
     app.mainloop()
